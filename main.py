@@ -58,16 +58,178 @@ def load_collection(file_name):
 def prompt_user_with_menu():
     print("\n\n********** Welcome to the Collection Manager. **********")
     print("COMMAND    FUNCTION")
-    # print("  ci         Check in an item")
-    # print("  co         Check out an item")
-    # print("  ab         Add a new book")
-    # print("  am         Add a new movie")
-    # print("  db         Display books")
-    # print("  dm         Display movies")
-    # print("  qb         Query for books")
-    # print("  qm         Query for movies")
+    print("  ci         Check in an item")
+    print("  co         Check out an item")
+    print("  ab         Add a new book")
+    print("  am         Add a new movie")
+    print("  db         Display books")
+    print("  dm         Display movies")
+    print("  qb         Query for books")
+    print("  qm         Query for movies")
     print("  x          Exit")
     return input("Please enter a command to proceed: ")
+
+
+# Print one item in the same order as the sample output.
+def print_item(item):
+    print("ID:", item["ID"])
+
+    # All of the other fields were already loaded in their original order.
+    for field in item:
+        if field != "ID":
+            print(field + ":", item[field])
+    print()
+
+
+# Search the collection using part of a title, author, publisher, director, or genre.
+def query_collection(collection):
+    query = input("Enter a query string to use for the search: ").lower()
+
+    # The outer dictionary uses IDs as keys, so each ID gets us an item.
+    for item_id in collection:
+        item = collection[item_id]
+
+        # Books and movies have different fields to check.
+        if "Author" in item:
+            if (query in item["Title"].lower() or
+                    query in item["Author"].lower() or
+                    query in item["Publisher"].lower()):
+                print_item(item)
+        else:
+            if (query in item["Title"].lower() or
+                    query in item["Director"].lower() or
+                    query in item["Genre"].lower()):
+                print_item(item)
+
+
+# Find an item using its ID, whether it is a book or movie.
+def find_item(library_collections, action):
+    response = input("Enter the ID for the item you wish to check " + action + ": ")
+
+    # Make sure the user entered a number before converting it to an integer.
+    if not response.isdigit():
+        return None
+
+    item_id = int(response)
+
+    if item_id in library_collections["books"]:
+        return library_collections["books"][item_id]
+    elif item_id in library_collections["movies"]:
+        return library_collections["movies"][item_id]
+    else:
+        return None
+
+
+# Check in a copy if one has actually been checked out.
+def check_in(library_collections):
+    item = find_item(library_collections, "in")
+
+    if item is None:
+        print("That ID does not match an item in the collection.")
+    elif item["Available"] < item["Copies"]:
+        item["Available"] += 1
+        print("Your check in has succeeded.")
+        print_item(item)
+    else:
+        print("All copies are already available, so this item can not be checked in.")
+
+
+# Check out a copy only when there is one available.
+def check_out(library_collections):
+    item = find_item(library_collections, "out")
+
+    if item is None:
+        print("That ID does not match an item in the collection.")
+    elif item["Available"] > 0:
+        item["Available"] -= 1
+        print("Your check out has succeeded.")
+        print_item(item)
+    else:
+        print("No copies of the item are available for check out.")
+
+
+# Display the collection 10 items at a time.
+def display_collection(collection):
+    count = 0
+
+    for item_id in collection:
+        print_item(collection[item_id])
+        count += 1
+
+        # Pause every ten items unless there are no more items to show.
+        if count % 10 == 0 and count < len(collection):
+            answer = input("Press enter to show more items, or type 'm' to return to the menu: ")
+            if answer.lower() == "m":
+                return
+
+
+# Get whole numbers for pages, years, and the number of copies.
+def get_number(question):
+    response = input(question)
+
+    # Keep asking until the value can be converted without an error.
+    while not response.isdigit():
+        print("Please enter a whole number.")
+        response = input(question)
+
+    return int(response)
+
+
+# Ask for the information needed to add a new book.
+def add_book(book_collection, max_existing_id):
+    print("Please enter the following attributes for the new book.")
+
+    book = {}
+    book["Title"] = input("Title: ")
+    book["Author"] = input("Author: ")
+    book["Publisher"] = input("Publisher: ")
+    book["Pages"] = str(get_number("Pages: "))
+    book["Year"] = str(get_number("Year: "))
+    book["Copies"] = get_number("Copies: ")
+    book["Available"] = book["Copies"]
+
+    # Let the user review the information before adding the book.
+    print("You have entered the following data:")
+    for field in book:
+        print(field + ":", book[field])
+    print()
+
+    answer = input("Press enter to add this item to the collection.  Enter 'x' to cancel.")
+    if answer.lower() != "x":
+        # Use the largest existing ID plus one so there are no duplicates.
+        max_existing_id += 1
+        book["ID"] = max_existing_id
+        book_collection[max_existing_id] = book
+
+    return max_existing_id
+
+
+# Add a new movie using the same process as adding a book.
+def add_movie(movie_collection, max_existing_id):
+    print("Please enter the following attributes for the new movie.")
+
+    movie = {}
+    movie["Title"] = input("Title: ")
+    movie["Director"] = input("Director: ")
+    movie["Length"] = input("Length: ")
+    movie["Genre"] = input("Genre: ")
+    movie["Year"] = str(get_number("Year: "))
+    movie["Copies"] = get_number("Copies: ")
+    movie["Available"] = movie["Copies"]
+
+    # Show the information first in case the user wants to cancel.
+    print("You have entered the following data:")
+    for field in movie:
+        print(field + ":", movie[field])
+    print()
+
+    answer = input("Press enter to add this item to the collection.  Enter 'x' to cancel.")
+    if answer.lower() != "x":
+        max_existing_id += 1
+        movie["ID"] = max_existing_id
+        movie_collection[max_existing_id] = movie
+
+    return max_existing_id
 
 
 # This is the main program function.  It runs the main loop which prompts the user and performs the requested actions.
@@ -111,29 +273,27 @@ def main():
         #
         ###############################################################################################################
         ###############################################################################################################
-        # if operation == "ci":
-        #     check_in(library_collections)
-        # elif operation == "co":
-        #     check_out(library_collections)
-        # elif operation == "ab":
-        #     max_existing_id = add_book(library_collections["books"], max_existing_id)
-        # elif operation == "am":
-        #     max_existing_id = add_movie(library_collections["movies"], max_existing_id)
-        # elif operation == "db":
-        #     display_collection(library_collections["books"])
-        # elif operation == "dm":
-        #     display_collection(library_collections["movies"])
-        # elif operation == "qb":
-        #     query_collection(library_collections["books"])
-        # elif operation == "qm":
-        #     query_collection(library_collections["movies"])
-        # else:
-        #     print("Unknown command.  Please try again.")
+        if operation == "ci":
+            check_in(library_collections)
+        elif operation == "co":
+            check_out(library_collections)
+        elif operation == "ab":
+            max_existing_id = add_book(library_collections["books"], max_existing_id)
+        elif operation == "am":
+            max_existing_id = add_movie(library_collections["movies"], max_existing_id)
+        elif operation == "db":
+            display_collection(library_collections["books"])
+        elif operation == "dm":
+            display_collection(library_collections["movies"])
+        elif operation == "qb":
+            query_collection(library_collections["books"])
+        elif operation == "qm":
+            query_collection(library_collections["movies"])
+        else:
+            print("Unknown command.  Please try again.")
 
         operation = prompt_user_with_menu()
 
 
 # Kick off the execution of the program.
 main()
-
-
