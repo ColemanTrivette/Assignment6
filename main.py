@@ -297,3 +297,4 @@ def main():
 
 # Kick off the execution of the program.
 main()
+# ChatGPT helped me write the logic for searching and displaying the collection, specifically looping through the dictrionaries, and also helped me develop the check-in and out system and assigning unique ID's to new entries.
